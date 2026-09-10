@@ -8,6 +8,7 @@ $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $Python = if ($env:FUTURES_INTEL_PYTHON) { $env:FUTURES_INTEL_PYTHON } else { "python" }
 $Src = Join-Path $Root "src"
 $Entry = Join-Path $Root "desktop_app.py"
+$Resources = Join-Path $Src "futures_intel\resources"
 
 if ($InstallBuildDeps) {
     & $Python -m pip install --upgrade pyinstaller
@@ -27,7 +28,8 @@ Set-Location $Root
     --windowed `
     --name $Name `
     --paths $Src `
-    --collect-data futures_intel `
+    --collect-submodules futures_intel `
+    --add-data "$Resources;futures_intel/resources" `
     $Entry
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 

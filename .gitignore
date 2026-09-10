@@ -8,3 +8,6 @@ logs/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+build/
+dist/
+*.spec
