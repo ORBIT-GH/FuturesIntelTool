@@ -9,6 +9,7 @@ from .config import ensure_runtime_dirs, load_config
 from .db import MarketDB
 from .pipeline import Collector
 from .report import generate_daily_report
+from .web import serve_dashboard
 
 
 def _json_default(value: Any) -> str:
@@ -33,6 +34,10 @@ def _build_parser() -> argparse.ArgumentParser:
 
     run = sub.add_parser("run", help="采集后生成日报")
     run.add_argument("--date", help="交易日，默认今天")
+
+    serve = sub.add_parser("serve", help="启动本地可视化看板")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8765)
 
     query = sub.add_parser("query", help="查询本地数据")
     query.add_argument("kind", choices=["market", "news", "runs", "health"])
@@ -144,6 +149,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         _print({"collect": collect_result.as_dict(), "report": report_result})
         return 0 if report_result["status"] in {"success", "partial"} else 1
 
+    if args.command == "serve":
+        db.initialize()
+        serve_dashboard(config, args.host, args.port)
+        return 0
+
     if args.command == "query":
         db.initialize()
         _print(_query(db, args))
@@ -155,3 +165,4 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
