@@ -105,7 +105,7 @@ class PipelineTest(unittest.TestCase):
         result = collector.collect("2026-09-10")
         self.assertEqual("success", result.status)
         self.assertEqual(1, self.db.scalar("SELECT COUNT(*) FROM contract_master"))
-        self.assertEqual(1, self.db.scalar("SELECT COUNT(*) FROM futures_daily"))
+        self.assertEqual(2, self.db.scalar("SELECT COUNT(*) FROM futures_daily"))
         self.assertEqual(2, self.db.scalar("SELECT COUNT(*) FROM positions"))
         self.assertEqual(1, self.db.scalar("SELECT COUNT(*) FROM basis_history"))
         self.assertIn("煤价数据暂缺", result.warnings)
@@ -132,3 +132,4 @@ class PipelineTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

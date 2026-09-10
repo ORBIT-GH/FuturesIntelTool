@@ -129,7 +129,28 @@ class Collector:
             try:
                 bars = self.fetchers["daily"](contract, product_code=code)
                 bars = [bar for bar in bars if bar["trading_date"] <= requested_date]
-                bars.sort(key=lambda bar: bar["trading_date"])
+                bars_by_date = {bar["trading_date"]: bar for bar in bars}
+                quote_date = str(main.get("trading_date") or "")[:10]
+                if quote_date and quote_date <= requested_date:
+                    quote_close = main.get("last") or main.get("settlement")
+                    bars_by_date[quote_date] = {
+                        "trading_date": quote_date,
+                        "product_code": code,
+                        "contract": contract,
+                        "period": "1d",
+                        "session": "full",
+                        "open": main.get("open"),
+                        "high": main.get("high"),
+                        "low": main.get("low"),
+                        "close": quote_close,
+                        "settlement": main.get("settlement") or quote_close,
+                        "previous_settlement": main.get("previous_settlement"),
+                        "volume": main.get("volume"),
+                        "open_interest": main.get("open_interest"),
+                        "source": "sina:quote",
+                        "fetched_at": main.get("fetched_at") or now.isoformat(timespec="seconds"),
+                    }
+                bars = sorted(bars_by_date.values(), key=lambda bar: bar["trading_date"])
                 history_days = max(60, int(self.config.get("history_days", 180)))
                 bars = bars[-history_days:]
                 for bar in bars:
@@ -266,3 +287,4 @@ class Collector:
             errors=errors,
             warnings=warnings,
         )
+
