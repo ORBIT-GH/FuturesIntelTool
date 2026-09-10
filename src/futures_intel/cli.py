@@ -8,6 +8,7 @@ from typing import Any, Sequence
 from .config import ensure_runtime_dirs, load_config
 from .db import MarketDB
 from .pipeline import Collector
+from .report import generate_daily_report
 
 
 def _json_default(value: Any) -> str:
@@ -26,6 +27,12 @@ def _build_parser() -> argparse.ArgumentParser:
 
     collect = sub.add_parser("collect", help="采集行情、持仓、基差和煤价")
     collect.add_argument("--date", help="交易日，默认今天")
+
+    report = sub.add_parser("report", help="生成日报和 OpenClaw 文件")
+    report.add_argument("--date", help="交易日，默认今天")
+
+    run = sub.add_parser("run", help="采集后生成日报")
+    run.add_argument("--date", help="交易日，默认今天")
 
     query = sub.add_parser("query", help="查询本地数据")
     query.add_argument("kind", choices=["market", "news", "runs", "health"])
@@ -82,9 +89,21 @@ def _query(db: MarketDB, args: argparse.Namespace) -> Any:
         return [dict(row) for row in db.query(sql, params)]
 
     if args.kind == "runs":
-        return [dict(row) for row in db.query("SELECT * FROM collect_runs ORDER BY id DESC LIMIT ?", (max(1, args.limit),))]
+        return [
+            dict(row)
+            for row in db.query(
+                "SELECT * FROM collect_runs ORDER BY id DESC LIMIT ?",
+                (max(1, args.limit),),
+            )
+        ]
 
-    return [dict(row) for row in db.query("SELECT * FROM source_health ORDER BY id DESC LIMIT ?", (max(1, args.limit),))]
+    return [
+        dict(row)
+        for row in db.query(
+            "SELECT * FROM source_health ORDER BY id DESC LIMIT ?",
+            (max(1, args.limit),),
+        )
+    ]
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -113,6 +132,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         result = Collector(config, db).collect(args.date)
         _print(result.as_dict())
         return 0 if result.status in {"success", "partial"} else 1
+
+    if args.command == "report":
+        result = generate_daily_report(db, config, args.date)
+        _print(result)
+        return 0 if result["status"] in {"success", "partial"} else 1
+
+    if args.command == "run":
+        collect_result = Collector(config, db).collect(args.date)
+        report_result = generate_daily_report(db, config, args.date)
+        _print({"collect": collect_result.as_dict(), "report": report_result})
+        return 0 if report_result["status"] in {"success", "partial"} else 1
 
     if args.command == "query":
         db.initialize()
