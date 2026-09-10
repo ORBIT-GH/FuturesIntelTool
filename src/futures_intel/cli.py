@@ -7,6 +7,7 @@ from typing import Any, Sequence
 
 from .config import ensure_runtime_dirs, load_config
 from .db import MarketDB
+from .imports import import_news_records, import_spot_records
 from .pipeline import Collector
 from .report import generate_daily_report
 from .web import serve_dashboard
@@ -34,6 +35,18 @@ def _build_parser() -> argparse.ArgumentParser:
 
     run = sub.add_parser("run", help="采集后生成日报")
     run.add_argument("--date", help="交易日，默认今天")
+
+    import_news = sub.add_parser("import-news", help="导入新闻 JSON/JSONL/CSV")
+    import_news.add_argument("--file", required=True)
+    import_news.add_argument("--source", default="manual")
+
+    import_spot = sub.add_parser("import-spot", help="导入现货价 JSON/JSONL/CSV")
+    import_spot.add_argument("--file", required=True)
+    import_spot.add_argument("--product", required=True)
+    import_spot.add_argument("--spec", default="")
+    import_spot.add_argument("--region", default="")
+    import_spot.add_argument("--quote-type", default="")
+    import_spot.add_argument("--source", default="manual")
 
     serve = sub.add_parser("serve", help="启动本地可视化看板")
     serve.add_argument("--host", default="127.0.0.1")
@@ -149,6 +162,26 @@ def main(argv: Sequence[str] | None = None) -> int:
         _print({"collect": collect_result.as_dict(), "report": report_result})
         return 0 if report_result["status"] in {"success", "partial"} else 1
 
+    if args.command == "import-news":
+        db.initialize()
+        count = import_news_records(db, args.file, source=args.source)
+        _print({"status": "ok", "imported": count})
+        return 0
+
+    if args.command == "import-spot":
+        db.initialize()
+        count = import_spot_records(
+            db,
+            args.file,
+            product_code=args.product,
+            spec=args.spec,
+            region=args.region,
+            quote_type=args.quote_type,
+            source=args.source,
+        )
+        _print({"status": "ok", "imported": count})
+        return 0
+
     if args.command == "serve":
         db.initialize()
         serve_dashboard(config, args.host, args.port)
@@ -165,4 +198,5 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
 

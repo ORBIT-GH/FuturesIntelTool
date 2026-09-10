@@ -17,6 +17,7 @@ from .sources import (
     fetch_quotes,
     parse_basis_payload,
     parse_position_payload,
+    fetch_rss_feed,
 )
 
 
@@ -59,6 +60,7 @@ class Collector:
             "position": fetch_position,
             "basis": fetch_basis,
             "coal": fetch_coal_prices,
+            "rss": fetch_rss_feed,
         }
         if fetchers:
             self.fetchers.update(fetchers)
@@ -267,6 +269,36 @@ class Collector:
                 started_at=coal_started,
             )
 
+        for feed in self.config.get("rss_feeds", []):
+            feed_url = str(feed.get("url") if isinstance(feed, Mapping) else feed)
+            if not feed_url:
+                continue
+            rss_started = utc_now()
+            try:
+                news_rows = self.fetchers["rss"](
+                    feed_url,
+                    product_keywords=self.config.get("news_keywords", {}),
+                )
+                count = self.db.upsert_news(news_rows)
+                item_count += count
+                self.db.record_source_health(
+                    run_id,
+                    f"rss:{feed_url}",
+                    "success" if news_rows else "partial",
+                    count,
+                    "未返回新闻" if not news_rows else "",
+                    started_at=rss_started,
+                )
+            except Exception as exc:
+                warnings.append(f"新闻源暂缺 {feed_url}: {exc}")
+                self.db.record_source_health(
+                    run_id,
+                    f"rss:{feed_url}",
+                    "failed",
+                    message=str(exc),
+                    started_at=rss_started,
+                )
+
         if successful_products == 0:
             status = "failed"
         elif errors:
@@ -287,4 +319,5 @@ class Collector:
             errors=errors,
             warnings=warnings,
         )
+
 
