@@ -1,8 +1,18 @@
 # OpenClaw 读取契约
 
-## 默认读取
+## 数据目录
 
-先读取 `reports/latest.json`，取得 `report_dir`。只在该目录存在 `success.ok` 时处理。
+桌面版和定时采集统一使用：
+
+`%LOCALAPPDATA%\FuturesIntelTool`
+
+最新日报入口：
+
+`%LOCALAPPDATA%\FuturesIntelTool\reports\latest.json`
+
+先读取 `latest.json`，取得 `report_dir`。只在该目录存在 `success.ok` 时处理。
+
+## 默认读取
 
 默认只读三个文件：
 
@@ -18,12 +28,13 @@
 
 ## 按需查询
 
-只有简报不足时，才通过 CLI 查询结构化的少量结果：
+只有简报不足时，才通过统一查询入口获取少量结构化结果：
 
 ```powershell
-$env:PYTHONPATH = "E:\咨询爬虫\src"
-python -m futures_intel --config "E:\咨询爬虫\config\default.json" query market --product SH --date 2026-09-10 --limit 10
-python -m futures_intel --config "E:\咨询爬虫\config\default.json" query news --product SH --limit 10
+powershell -NoProfile -ExecutionPolicy Bypass -File E:\咨询爬虫\scripts\query.ps1 query market --product SH --date 2026-09-10 --limit 10
+powershell -NoProfile -ExecutionPolicy Bypass -File E:\咨询爬虫\scripts\query.ps1 query news --product SH --limit 10
+powershell -NoProfile -ExecutionPolicy Bypass -File E:\咨询爬虫\scripts\query.ps1 query runs --limit 10
+powershell -NoProfile -ExecutionPolicy Bypass -File E:\咨询爬虫\scripts\query.ps1 query health --limit 30
 ```
 
 查询时始终带日期、品种和 limit。不要把整个数据库或全量新闻返回给模型。
@@ -34,4 +45,3 @@ python -m futures_intel --config "E:\咨询爬虫\config\default.json" query new
 - 持仓排名：只作为前20席位口径，不等同于全市场净持仓。
 - 基差：必须同时说明合约、现货来源、报价口径和数据日期。
 - 报告主体合约和持仓/基差合约不同时，不得合并成一个结论。
-
