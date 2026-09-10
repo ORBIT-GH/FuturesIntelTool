@@ -46,6 +46,24 @@ powershell -ExecutionPolicy Bypass -File scripts\install_task.ps1
 powershell -ExecutionPolicy Bypass -File scripts\uninstall_task.ps1
 ```
 
+## 修改合约
+
+默认不写死合约，脚本每天按持仓量自动判定主力，持仓相同时比较成交量。
+
+如果要固定某个品种的合约，在 `config/default.json` 的对应品种中增加 `contract_override`：
+
+```json
+{"code": "SH", "name": "烧碱", "exchange": "CZCE", "contract_override": "SH2701"}
+```
+
+修改后重新运行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\run_daily.ps1
+```
+
+删除 `contract_override` 字段后，该品种恢复自动主力判定。持仓和基差如果来自另一个交易所主力合约，日报会在 `anomalies.json` 中提示口径不一致，不会把两者静默混用。
+
 ## OpenClaw 默认读取顺序
 
 1. `reports/latest.json` 找到最新日报目录。
@@ -101,4 +119,3 @@ python -m unittest discover -s tests -v
 ```
 
 本项目只做资讯整理，不构成投资建议。使用前应确认各数据源的访问条款和再分发限制。
-

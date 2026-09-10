@@ -130,6 +130,49 @@ class PipelineTest(unittest.TestCase):
         self.assertTrue(any("持仓失败" in item for item in result.errors))
 
 
+    def test_contract_override_beats_auto_main(self) -> None:
+        config = dict(CONFIG)
+        config["products"] = [
+            {
+                "code": "SH",
+                "name": "烧碱",
+                "exchange": "CZCE",
+                "contract_override": "SH2701",
+            }
+        ]
+        quotes = QUOTES + [
+            {
+                **QUOTES[0],
+                "contract": "SH2701",
+                "name": "烧碱2701",
+                "open_interest": 71827.0,
+                "volume": 59410.0,
+            }
+        ]
+        calls: list[str] = []
+
+        def daily(contract: str, *, product_code: str):
+            calls.append(contract)
+            return daily_fetcher(contract, product_code=product_code)
+
+        collector = Collector(
+            config,
+            self.db,
+            fetchers={
+                "quotes": lambda contracts: quotes,
+                "daily": daily,
+                "position": lambda code: POSITION,
+                "basis": lambda code: BASIS,
+                "coal": lambda: [],
+            },
+        )
+        result = collector.collect("2026-09-10")
+        self.assertEqual("success", result.status)
+        main = self.db.query("SELECT * FROM contract_master WHERE is_main=1")
+        self.assertEqual("SH2701", main[0]["contract"])
+        self.assertEqual("config_override", main[0]["rule_version"])
+        self.assertEqual(["SH2701"], calls)
+
+
 if __name__ == "__main__":
     unittest.main()
-

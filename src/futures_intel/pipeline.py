@@ -87,11 +87,46 @@ class Collector:
             )
 
         quote_started = utc_now()
+        selected_main: dict[str, dict[str, Any]] = {}
         try:
             quotes = self.fetchers["quotes"](all_contracts)
             quote_rows: list[dict[str, Any]] = []
             for product in products:
-                ranked = choose_main_contract(quotes, product["code"])
+                code = product["code"]
+                ranked = choose_main_contract(quotes, code)
+                override = str(product.get("contract_override") or "").strip().upper()
+                selected: dict[str, Any] | None = None
+                if override:
+                    existing = next(
+                        (row for row in ranked if row["contract"] == override),
+                        None,
+                    )
+                    selected = dict(existing) if existing else {
+                        "trading_date": requested_date,
+                        "product_code": code,
+                        "contract": override,
+                        "open_interest": None,
+                        "volume": None,
+                        "source": "config",
+                        "fetched_at": now.isoformat(timespec="seconds"),
+                    }
+                    selected.update(
+                        {
+                            "rank": 1,
+                            "is_main": 1,
+                            "rule_version": "config_override",
+                        }
+                    )
+                    ranked = [selected] + [
+                        row for row in ranked if row["contract"] != override
+                    ]
+                    for index, row in enumerate(ranked, start=1):
+                        row["rank"] = index
+                        row["is_main"] = 1 if index == 1 else 0
+                elif ranked:
+                    selected = ranked[0]
+                if selected:
+                    selected_main[code] = selected
                 for row in ranked:
                     row["exchange"] = product.get("exchange", "")
                 quote_rows.extend(ranked)
@@ -116,15 +151,15 @@ class Collector:
                 started_at=quote_started,
             )
             quotes = []
+            selected_main = {}
 
         for product in products:
             code = product["code"]
             exchange = product.get("exchange", "")
-            ranked = choose_main_contract(quotes, code)
-            if not ranked:
+            main = selected_main.get(code)
+            if main is None:
                 errors.append(f"{code} 无法判定主力合约")
                 continue
-            main = ranked[0]
             contract = main["contract"]
 
             kline_started = utc_now()
@@ -319,4 +354,3 @@ class Collector:
             errors=errors,
             warnings=warnings,
         )
-
