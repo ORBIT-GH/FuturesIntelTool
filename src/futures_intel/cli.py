@@ -11,7 +11,6 @@ from .db import MarketDB
 from .imports import import_news_records, import_spot_records
 from .pipeline import Collector
 from .report import generate_daily_report
-from .web import serve_dashboard
 
 
 def _json_default(value: Any) -> str:
@@ -51,10 +50,6 @@ def _build_parser() -> argparse.ArgumentParser:
     import_spot.add_argument("--region", default="")
     import_spot.add_argument("--quote-type", default="")
     import_spot.add_argument("--source", default="manual")
-
-    serve = sub.add_parser("serve", help="启动本地可视化看板")
-    serve.add_argument("--host", default="127.0.0.1")
-    serve.add_argument("--port", type=int, default=8765)
 
     query = sub.add_parser("query", help="查询本地数据")
     query.add_argument("kind", choices=["market", "news", "runs", "health"])
@@ -195,11 +190,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         _print({"status": "ok", "imported": count})
         return 0
 
-    if args.command == "serve":
-        db.initialize()
-        serve_dashboard(config, args.host, args.port)
-        return 0
-
     if args.command == "query":
         db.initialize()
         _print(_query(db, args))
@@ -211,4 +201,3 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

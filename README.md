@@ -1,6 +1,6 @@
 # 期货资讯工具
 
-本工具面向本地期货研究流程：采集行情、持仓和基差，写入 SQLite，生成精简日报，并把供 OpenClaw 使用的文件、CLI 和可视化看板放在同一套结构中。
+本工具面向本地期货研究流程：采集行情、持仓和基差，写入 SQLite，生成精简日报，并把供 OpenClaw 使用的文件、CLI 和桌面窗口放在同一套结构中。
 
 ## 当前功能
 
@@ -12,7 +12,7 @@
 - SQLite：`data/market.sqlite`，主键和 UNIQUE 约束保证重抓幂等。
 - 日报：`daily-brief.md`、`anomalies.json`、`report.html`、`manifest.json` 和 `success.ok`。
 - OpenClaw：默认只读简报和异常；需要细节时再调用 CLI 查询。
-- 看板：查看品种快照、数据源健康、异常和日报，支持手动采集。
+- 桌面窗口：查看品种快照、数据源健康、异常和日报，支持手动采集。
 
 ## 桌面窗口
 
@@ -29,16 +29,12 @@
 $env:PYTHONPATH = "$PWD\src"
 python -m futures_intel --config config/default.json init
 python -m futures_intel --config config/default.json run
-python -m futures_intel --config config/default.json serve
 ```
-
-浏览器打开 `http://127.0.0.1:8765`。
 
 也可以使用包装脚本：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\run_daily.ps1
-powershell -ExecutionPolicy Bypass -File scripts\start_dashboard.ps1
 ```
 
 ## 每天 18:05 自动运行
