@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "futures-intel"
+version = "0.1.0"
+description = "Local futures market data collector, report generator, and OpenClaw file/CLI interface."
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+futures-intel = "futures_intel.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

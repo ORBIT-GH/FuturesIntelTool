@@ -1,0 +1,18 @@
+{
+  "timezone": "Asia/Shanghai",
+  "database": "data/market.sqlite",
+  "reports_dir": "reports",
+  "logs_dir": "logs",
+  "history_days": 180,
+  "products": [
+    {"code": "SH", "name": "烧碱", "exchange": "CZCE"},
+    {"code": "V", "name": "PVC", "exchange": "DCE"},
+    {"code": "JM", "name": "焦煤", "exchange": "DCE"},
+    {"code": "M", "name": "豆粕", "exchange": "DCE"}
+  ],
+  "contract_months_ahead": 20,
+  "rss_feeds": [],
+  "openclaw": {
+    "default_files": ["manifest.json", "daily-brief.md", "anomalies.json"]
+  }
+}
