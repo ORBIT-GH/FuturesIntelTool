@@ -1,0 +1,127 @@
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from typing import Any, Sequence
+
+from .config import ensure_runtime_dirs, load_config
+from .db import MarketDB
+from .pipeline import Collector
+
+
+def _json_default(value: Any) -> str:
+    return str(value)
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="futures-intel",
+        description="本地期货资讯采集、简报和 OpenClaw 文件接口",
+    )
+    parser.add_argument("--config", default=None, help="配置文件路径")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    sub.add_parser("init", help="初始化数据库和目录")
+
+    collect = sub.add_parser("collect", help="采集行情、持仓、基差和煤价")
+    collect.add_argument("--date", help="交易日，默认今天")
+
+    query = sub.add_parser("query", help="查询本地数据")
+    query.add_argument("kind", choices=["market", "news", "runs", "health"])
+    query.add_argument("--date")
+    query.add_argument("--product")
+    query.add_argument("--limit", type=int, default=20)
+
+    return parser
+
+
+def _print(payload: Any) -> None:
+    print(json.dumps(payload, ensure_ascii=False, indent=2, default=_json_default))
+
+
+def _query(db: MarketDB, args: argparse.Namespace) -> Any:
+    if args.kind == "market":
+        clauses = ["1=1"]
+        params: list[Any] = []
+        if args.date:
+            clauses.append("trading_date <= ?")
+            params.append(args.date)
+        if args.product:
+            clauses.append("product_code = ?")
+            params.append(args.product.upper())
+        params.append(max(1, args.limit))
+        sql = f"""
+            SELECT trading_date, product_code, contract, exchange, open_interest,
+                   volume, rank, is_main, rule_version, fetched_at
+            FROM contract_master
+            WHERE {' AND '.join(clauses)}
+            ORDER BY trading_date DESC, product_code, rank
+            LIMIT ?
+        """
+        return [dict(row) for row in db.query(sql, params)]
+
+    if args.kind == "news":
+        clauses = ["1=1"]
+        params: list[Any] = []
+        if args.date:
+            clauses.append("substr(COALESCE(published_at, first_seen_at), 1, 10) <= ?")
+            params.append(args.date)
+        if args.product:
+            clauses.append("products_json LIKE ?")
+            params.append(f'%"{args.product.upper()}"%')
+        params.append(max(1, args.limit))
+        sql = f"""
+            SELECT content_hash, published_at, source, title, summary, url,
+                   products_json, tags_json
+            FROM news_items
+            WHERE {' AND '.join(clauses)}
+            ORDER BY COALESCE(published_at, first_seen_at) DESC
+            LIMIT ?
+        """
+        return [dict(row) for row in db.query(sql, params)]
+
+    if args.kind == "runs":
+        return [dict(row) for row in db.query("SELECT * FROM collect_runs ORDER BY id DESC LIMIT ?", (max(1, args.limit),))]
+
+    return [dict(row) for row in db.query("SELECT * FROM source_health ORDER BY id DESC LIMIT ?", (max(1, args.limit),))]
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+    try:
+        config = load_config(args.config)
+        ensure_runtime_dirs(config)
+        db = MarketDB(config["database"])
+    except Exception as exc:
+        print(f"配置错误: {exc}", file=sys.stderr)
+        return 2
+
+    if args.command == "init":
+        db.initialize()
+        _print(
+            {
+                "status": "ok",
+                "database": config["database"],
+                "reports_dir": config["reports_dir"],
+            }
+        )
+        return 0
+
+    if args.command == "collect":
+        result = Collector(config, db).collect(args.date)
+        _print(result.as_dict())
+        return 0 if result.status in {"success", "partial"} else 1
+
+    if args.command == "query":
+        db.initialize()
+        _print(_query(db, args))
+        return 0
+
+    parser.error(f"unsupported command: {args.command}")
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
