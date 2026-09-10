@@ -141,7 +141,7 @@ class FuturesDesktopApp:
     def _build_settings_tab(self) -> None:
         ttk.Label(
             self.settings_tab,
-            text="自动主力：按持仓量最大、同持仓比较成交量；固定合约：始终使用指定合约。",
+            text="选择品种后可改模式或合约；保存设置会自动应用当前编辑，下一次采集生效。",
         ).pack(anchor="w", pady=(0, 10))
         body = ttk.Frame(self.settings_tab)
         body.pack(fill="both", expand=True)
@@ -191,7 +191,7 @@ class FuturesDesktopApp:
         ttk.Button(form, text="删除选中", command=self._delete_product).grid(
             row=6, column=0, columnspan=2, sticky="ew", pady=4
         )
-        ttk.Button(form, text="保存设置", command=self._save_settings).grid(
+        ttk.Button(form, text="保存设置（含当前编辑）", command=self._save_settings).grid(
             row=7, column=0, columnspan=2, sticky="ew", pady=(16, 4)
         )
         ttk.Label(form, text="合约格式示例：SH2701", style="Muted.TLabel").grid(
@@ -247,7 +247,7 @@ class FuturesDesktopApp:
         self.contract_var.set(product.get("contract_override", ""))
         self._toggle_contract_state()
 
-    def _update_product(self) -> None:
+    def _update_product(self) -> bool:
         try:
             product = normalize_product(
                 {
@@ -260,7 +260,7 @@ class FuturesDesktopApp:
             )
         except ValueError as exc:
             messagebox.showerror("设置错误", str(exc))
-            return
+            return False
         product["mode"] = "fixed" if product.get("contract_override") else "auto"
         selected = self.settings_tree.selection()
         if selected:
@@ -285,6 +285,7 @@ class FuturesDesktopApp:
         self._refresh_settings_tree()
         if self.settings_tree.exists(product["code"]):
             self.settings_tree.selection_set(product["code"])
+        return True
 
     def _delete_product(self) -> None:
         selected = self.settings_tree.selection()
@@ -304,6 +305,13 @@ class FuturesDesktopApp:
         self._toggle_contract_state()
 
     def _save_settings(self) -> None:
+        if (
+            self.code_var.get().strip()
+            or self.contract_var.get().strip()
+            or self.settings_tree.selection()
+        ):
+            if not self._update_product():
+                return
         try:
             saved = save_products(self.config_path, self.settings_products)
         except (ValueError, OSError, json.JSONDecodeError) as exc:

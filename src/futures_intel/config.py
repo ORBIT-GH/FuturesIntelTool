@@ -8,6 +8,7 @@ from typing import Any
 
 DEFAULT_CONFIG: dict[str, Any] = {
     "timezone": "Asia/Shanghai",
+    "market_holidays_file": "config/market_holidays.txt",
     "database": "data/market.sqlite",
     "reports_dir": "reports",
     "logs_dir": "logs",
@@ -20,6 +21,12 @@ DEFAULT_CONFIG: dict[str, Any] = {
         {"code": "M", "name": "豆粕", "exchange": "DCE"},
     ],
     "rss_feeds": [],
+    "news_keywords": {
+        "SH": ["烧碱", "液碱", "片碱", "氯碱"],
+        "V": ["PVC", "聚氯乙烯", "电石"],
+        "JM": ["焦煤", "炼焦煤", "煤炭"],
+        "M": ["豆粕", "大豆", "CBOT大豆"],
+    },
     "openclaw": {
         "default_files": ["manifest.json", "daily-brief.md", "anomalies.json"]
     },
