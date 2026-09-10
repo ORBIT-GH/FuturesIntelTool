@@ -1,5 +1,6 @@
 {
   "timezone": "Asia/Shanghai",
+  "market_holidays_file": "config/market_holidays.txt",
   "database": "data/market.sqlite",
   "reports_dir": "reports",
   "logs_dir": "logs",

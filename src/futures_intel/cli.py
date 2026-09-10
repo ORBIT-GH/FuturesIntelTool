@@ -5,6 +5,7 @@ import json
 import sys
 from typing import Any, Sequence
 
+from .calendar import is_trading_day
 from .config import ensure_runtime_dirs, load_config
 from .db import MarketDB
 from .imports import import_news_records, import_spot_records
@@ -32,6 +33,9 @@ def _build_parser() -> argparse.ArgumentParser:
 
     report = sub.add_parser("report", help="生成日报和 OpenClaw 文件")
     report.add_argument("--date", help="交易日，默认今天")
+
+    scheduled = sub.add_parser("scheduled-run", help="交易日定时采集并生成日报")
+    scheduled.add_argument("--date", help="交易日，默认今天")
 
     run = sub.add_parser("run", help="采集后生成日报")
     run.add_argument("--date", help="交易日，默认今天")
@@ -156,6 +160,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         _print(result)
         return 0 if result["status"] in {"success", "partial"} else 1
 
+    if args.command == "scheduled-run":
+        if not is_trading_day(args.date, config):
+            _print({"status": "skipped", "reason": "not_trading_day", "date": args.date})
+            return 0
+        collect_result = Collector(config, db).collect(args.date)
+        report_result = generate_daily_report(db, config, args.date)
+        _print({"collect": collect_result.as_dict(), "report": report_result})
+        return 0 if report_result["status"] in {"success", "partial"} else 1
+
     if args.command == "run":
         collect_result = Collector(config, db).collect(args.date)
         report_result = generate_daily_report(db, config, args.date)
@@ -198,5 +211,4 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
 
