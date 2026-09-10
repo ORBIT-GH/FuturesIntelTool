@@ -14,6 +14,15 @@
 - OpenClaw：默认只读简报和异常；需要细节时再调用 CLI 查询。
 - 看板：查看品种快照、数据源健康、异常和日报，支持手动采集。
 
+## 桌面窗口
+
+主程序提供独立的 Windows 可视化窗口，不依赖浏览器。窗口内可以查看行情、数据源健康、异常和日报，也可以在“合约设置”页新增、删除、切换品种，或者为任意品种选择：
+
+- 自动主力
+- 固定合约，例如 `SH2701`
+
+设置会保存到配置文件中。打包后的 EXE 首次启动时，会自动在 `%LOCALAPPDATA%\FuturesIntelTool` 创建配置、数据库、日报和日志目录。
+
 ## 快速开始
 
 ```powershell
@@ -110,6 +119,26 @@ python -m futures_intel --config config/default.json import-news `
 - 主力切换在收盘数据完整后生效，并在日报中标记。
 - 基差来源目前是交易法门公开口径。现货价、期货价和基差是否齐全，取决于上游是否同时提供。
 - 煤价是 CCTD 首页公开指标，页面结构变化时可能需要调整解析规则。
+
+## 打包发给别人
+
+首次安装 PyInstaller 并构建：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\build_desktop.ps1 -InstallBuildDeps
+```
+
+后续重新构建：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\build_desktop.ps1
+```
+
+生成文件：
+
+`dist\FuturesIntelTool.exe`
+
+这是单文件 Windows 程序，可以直接发送给别人。对方首次运行时会在自己的用户目录创建数据文件，不需要安装 Python、浏览器或 OpenClaw。
 
 ## 测试
 

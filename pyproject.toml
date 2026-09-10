@@ -9,6 +9,9 @@ description = "Local futures market data collector, report generator, and OpenCl
 requires-python = ">=3.11"
 dependencies = []
 
+[project.gui-scripts]
+futures-intel-desktop = "futures_intel.desktop:main"
+
 [project.scripts]
 futures-intel = "futures_intel.cli:main"
 
@@ -18,4 +21,4 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 [tool.setuptools.package-data]
-futures_intel = ["web_static/*"]
+futures_intel = ["web_static/*", "resources/*"]
