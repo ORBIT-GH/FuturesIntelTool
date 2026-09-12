@@ -51,55 +51,211 @@ class FuturesDesktopApp:
             style.theme_use("clam")
         except tk.TclError:
             pass
-        style.configure("Treeview", rowheight=28, font=("Microsoft YaHei UI", 9))
-        style.configure("TButton", padding=(10, 6), font=("Microsoft YaHei UI", 9))
-        style.configure("TLabel", font=("Microsoft YaHei UI", 9))
-        style.configure("Title.TLabel", font=("Microsoft YaHei UI", 18, "bold"))
-        style.configure("Muted.TLabel", foreground="#66788a")
+        style.configure("TFrame", background="#F4F7FB")
+        style.configure("Card.TFrame", background="#FFFFFF")
+        style.configure("TLabel", background="#F4F7FB", foreground="#263445", font=("Microsoft YaHei UI", 9))
+        style.configure("Card.TLabel", background="#FFFFFF", foreground="#263445", font=("Microsoft YaHei UI", 9))
+        style.configure("Muted.TLabel", background="#F4F7FB", foreground="#718096", font=("Microsoft YaHei UI", 9))
+        style.configure("PageTitle.TLabel", background="#FFFFFF", foreground="#132238", font=("Microsoft YaHei UI", 17, "bold"))
+        style.configure("CardTitle.TLabel", background="#FFFFFF", foreground="#718096", font=("Microsoft YaHei UI", 9))
+        style.configure("CardValue.TLabel", background="#FFFFFF", foreground="#132238", font=("Microsoft YaHei UI", 20, "bold"))
+        style.configure("TButton", padding=(12, 7), font=("Microsoft YaHei UI", 9), borderwidth=0)
+        style.configure("Accent.TButton", background="#0D7A68", foreground="#FFFFFF")
+        style.map("Accent.TButton", background=[("active", "#096B5B"), ("disabled", "#9FB7B2")])
+        style.configure("Secondary.TButton", background="#E8EEF4", foreground="#263445")
+        style.map("Secondary.TButton", background=[("active", "#DCE6EE")])
+        style.configure(
+            "Treeview",
+            rowheight=30,
+            font=("Microsoft YaHei UI", 9),
+            background="#FFFFFF",
+            fieldbackground="#FFFFFF",
+            foreground="#263445",
+            borderwidth=0,
+        )
+        style.map("Treeview", background=[("selected", "#D9EEE9")], foreground=[("selected", "#132238")])
+        style.configure(
+            "Treeview.Heading",
+            background="#E8EEF4",
+            foreground="#496174",
+            relief="flat",
+            font=("Microsoft YaHei UI", 9, "bold"),
+            padding=(8, 8),
+        )
+        style.map("Treeview.Heading", background=[("active", "#DCE6EE")])
+        style.configure("TEntry", padding=7, fieldbackground="#FFFFFF")
+        style.configure("TCombobox", padding=5)
+        style.configure("TLabelframe", background="#FFFFFF", bordercolor="#DDE6EE")
+        style.configure("TLabelframe.Label", background="#FFFFFF", foreground="#496174", font=("Microsoft YaHei UI", 9, "bold"))
 
     def _build_ui(self) -> None:
-        header = ttk.Frame(self.root, padding=(18, 14, 18, 10))
-        header.pack(fill="x")
-        ttk.Label(header, text="期货资讯工具", style="Title.TLabel").pack(side="left")
-        controls = ttk.Frame(header)
-        controls.pack(side="right")
-        ttk.Label(controls, text="交易日").pack(side="left", padx=(0, 6))
-        ttk.Entry(controls, textvariable=self.date_var, width=12).pack(side="left")
-        self.refresh_button = ttk.Button(controls, text="刷新", command=self.refresh)
-        self.refresh_button.pack(side="left", padx=6)
-        self.run_button = ttk.Button(controls, text="采集并生成日报", command=self.run_now)
-        self.run_button.pack(side="left", padx=(0, 6))
-        ttk.Button(controls, text="打开数据目录", command=self.open_data_dir).pack(side="left")
+        shell = tk.Frame(self.root, bg="#F4F7FB")
+        shell.pack(fill="both", expand=True)
 
-        self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(fill="both", expand=True, padx=14, pady=(0, 8))
-        self.overview_tab = ttk.Frame(self.notebook, padding=12)
-        self.health_tab = ttk.Frame(self.notebook, padding=12)
-        self.report_tab = ttk.Frame(self.notebook, padding=12)
-        self.settings_tab = ttk.Frame(self.notebook, padding=12)
-        self.notebook.add(self.overview_tab, text="行情看板")
-        self.notebook.add(self.health_tab, text="数据源")
-        self.notebook.add(self.report_tab, text="日报")
-        self.notebook.add(self.settings_tab, text="合约设置")
+        sidebar = tk.Frame(shell, bg="#102A2B", width=224)
+        sidebar.pack(side="left", fill="y")
+        sidebar.pack_propagate(False)
+        tk.Label(
+            sidebar,
+            text="FUTURES",
+            bg="#102A2B",
+            fg="#78D6C6",
+            font=("Microsoft YaHei UI", 10, "bold"),
+            anchor="w",
+        ).pack(fill="x", padx=22, pady=(24, 0))
+        tk.Label(
+            sidebar,
+            text="期货资讯工具",
+            bg="#102A2B",
+            fg="#FFFFFF",
+            font=("Microsoft YaHei UI", 17, "bold"),
+            anchor="w",
+        ).pack(fill="x", padx=22, pady=(3, 24))
+
+        self.nav_buttons: dict[str, tk.Button] = {}
+        for key, label in (
+            ("overview", "行情看板"),
+            ("health", "数据源"),
+            ("report", "日报"),
+            ("settings", "合约设置"),
+        ):
+            button = tk.Button(
+                sidebar,
+                text=label,
+                command=lambda current=key: self.show_page(current),
+                bg="#173536",
+                fg="#D9E9E6",
+                activebackground="#0D7A68",
+                activeforeground="#FFFFFF",
+                relief="flat",
+                bd=0,
+                anchor="w",
+                padx=22,
+                pady=12,
+                font=("Microsoft YaHei UI", 10),
+                cursor="hand2",
+            )
+            button.pack(fill="x", padx=12, pady=3)
+            self.nav_buttons[key] = button
+
+        tk.Label(
+            sidebar,
+            text="自动采集 · 本地入库\nOpenClaw 只读简报",
+            bg="#102A2B",
+            fg="#8FAEAA",
+            justify="left",
+            anchor="w",
+            font=("Microsoft YaHei UI", 8),
+        ).pack(side="bottom", fill="x", padx=22, pady=20)
+
+        main = tk.Frame(shell, bg="#F4F7FB")
+        main.pack(side="left", fill="both", expand=True)
+
+        topbar = tk.Frame(main, bg="#FFFFFF", height=76)
+        topbar.pack(fill="x")
+        topbar.pack_propagate(False)
+        title_box = tk.Frame(topbar, bg="#FFFFFF")
+        title_box.pack(side="left", fill="y", padx=24)
+        self.page_title_var = tk.StringVar(value="行情看板")
+        tk.Label(
+            title_box,
+            textvariable=self.page_title_var,
+            bg="#FFFFFF",
+            fg="#132238",
+            font=("Microsoft YaHei UI", 17, "bold"),
+        ).pack(anchor="w", pady=(16, 0))
+        tk.Label(
+            title_box,
+            text="本地数据、日报和合约设置",
+            bg="#FFFFFF",
+            fg="#718096",
+            font=("Microsoft YaHei UI", 8),
+        ).pack(anchor="w")
+
+        controls = tk.Frame(topbar, bg="#FFFFFF")
+        controls.pack(side="right", padx=18, pady=16)
+        tk.Label(controls, text="交易日", bg="#FFFFFF", fg="#718096").pack(side="left", padx=(0, 6))
+        ttk.Entry(controls, textvariable=self.date_var, width=12).pack(side="left")
+        self.refresh_button = ttk.Button(controls, text="刷新", command=self.refresh, style="Secondary.TButton")
+        self.refresh_button.pack(side="left", padx=6)
+        self.run_button = ttk.Button(controls, text="采集并生成日报", command=self.run_now, style="Accent.TButton")
+        self.run_button.pack(side="left", padx=(0, 6))
+        ttk.Button(controls, text="打开数据目录", command=self.open_data_dir, style="Secondary.TButton").pack(side="left")
+
+        self.content_host = tk.Frame(main, bg="#F4F7FB")
+        self.content_host.pack(fill="both", expand=True, padx=16, pady=16)
+        self.pages: dict[str, tk.Frame] = {}
+        for key in ("overview", "health", "report", "settings"):
+            page = tk.Frame(self.content_host, bg="#F4F7FB")
+            self.pages[key] = page
+        self.overview_tab = self.pages["overview"]
+        self.health_tab = self.pages["health"]
+        self.report_tab = self.pages["report"]
+        self.settings_tab = self.pages["settings"]
+
         self._build_overview_tab()
         self._build_health_tab()
         self._build_report_tab()
         self._build_settings_tab()
+        self.show_page("overview")
 
-        footer = ttk.Frame(self.root, padding=(18, 0, 18, 10))
-        footer.pack(fill="x")
-        ttk.Label(footer, textvariable=self.status_var).pack(side="left")
+        footer = tk.Frame(main, bg="#F4F7FB")
+        footer.pack(fill="x", padx=20, pady=(0, 12))
+        tk.Label(footer, textvariable=self.status_var, bg="#F4F7FB", fg="#496174").pack(side="left")
         self.progress = ttk.Progressbar(footer, mode="indeterminate", length=160)
         self.progress.pack(side="right")
-        ttk.Label(footer, textvariable=self.data_root_var, style="Muted.TLabel").pack(
-            side="right", padx=12
-        )
+        tk.Label(
+            footer,
+            textvariable=self.data_root_var,
+            bg="#F4F7FB",
+            fg="#8A9AAB",
+            font=("Microsoft YaHei UI", 8),
+        ).pack(side="right", padx=12)
+
+    def show_page(self, key: str) -> None:
+        for name, page in self.pages.items():
+            if name == key:
+                page.pack(fill="both", expand=True)
+            else:
+                page.pack_forget()
+        labels = {
+            "overview": "行情看板",
+            "health": "数据源",
+            "report": "日报",
+            "settings": "合约设置",
+        }
+        self.page_title_var.set(labels.get(key, ""))
+        for name, button in self.nav_buttons.items():
+            if name == key:
+                button.configure(bg="#0D7A68", fg="#FFFFFF")
+            else:
+                button.configure(bg="#173536", fg="#D9E9E6")
 
     def _build_overview_tab(self) -> None:
+        metrics = tk.Frame(self.overview_tab, bg="#F4F7FB")
+        metrics.pack(fill="x", pady=(0, 14))
+        self.metric_vars = {
+            "date": tk.StringVar(value="-"),
+            "status": tk.StringVar(value="-"),
+            "products": tk.StringVar(value="-"),
+            "anomalies": tk.StringVar(value="-"),
+        }
+        for key, title in (
+            ("date", "交易日"),
+            ("status", "运行状态"),
+            ("products", "覆盖品种"),
+            ("anomalies", "异常提示"),
+        ):
+            card = tk.Frame(metrics, bg="#FFFFFF", highlightbackground="#E4EBF1", highlightthickness=1)
+            card.pack(side="left", fill="x", expand=True, padx=(0, 10))
+            tk.Label(card, text=title, bg="#FFFFFF", fg="#718096", font=("Microsoft YaHei UI", 9)).pack(anchor="w", padx=16, pady=(13, 2))
+            tk.Label(card, textvariable=self.metric_vars[key], bg="#FFFFFF", fg="#132238", font=("Microsoft YaHei UI", 17, "bold")).pack(anchor="w", padx=16, pady=(0, 13))
+
+        table_card = tk.Frame(self.overview_tab, bg="#FFFFFF", highlightbackground="#E4EBF1", highlightthickness=1)
+        table_card.pack(fill="x")
+        tk.Label(table_card, text="最新行情", bg="#FFFFFF", fg="#132238", font=("Microsoft YaHei UI", 12, "bold")).pack(anchor="w", padx=16, pady=(13, 8))
         columns = ("code", "name", "mode", "contract", "close", "change", "volume", "oi", "date")
-        self.market_tree = ttk.Treeview(
-            self.overview_tab, columns=columns, show="headings", height=11
-        )
+        self.market_tree = ttk.Treeview(table_card, columns=columns, show="headings", height=10)
         headings = {
             "code": "代码", "name": "品种", "mode": "模式", "contract": "报告合约",
             "close": "收盘/最新", "change": "涨跌", "volume": "成交量",
@@ -112,56 +268,69 @@ class FuturesDesktopApp:
         for column in columns:
             self.market_tree.heading(column, text=headings[column])
             self.market_tree.column(column, width=widths[column], anchor="center")
-        self.market_tree.pack(fill="x")
-        ttk.Label(self.overview_tab, text="异常与口径提示").pack(anchor="w", pady=(16, 6))
-        self.anomaly_text = tk.Text(self.overview_tab, height=10, wrap="word", state="disabled")
-        self.anomaly_text.pack(fill="both", expand=True)
+        self.market_tree.tag_configure("up", foreground="#C43D3D")
+        self.market_tree.tag_configure("down", foreground="#118562")
+        self.market_tree.pack(fill="x", padx=12, pady=(0, 12))
+
+        anomaly_card = tk.Frame(self.overview_tab, bg="#FFFFFF", highlightbackground="#E4EBF1", highlightthickness=1)
+        anomaly_card.pack(fill="both", expand=True, pady=(14, 0))
+        tk.Label(anomaly_card, text="异常与口径提示", bg="#FFFFFF", fg="#132238", font=("Microsoft YaHei UI", 12, "bold")).pack(anchor="w", padx=16, pady=(13, 6))
+        self.anomaly_text = tk.Text(anomaly_card, height=8, wrap="word", state="disabled", bg="#FFFFFF", fg="#496174", relief="flat", padx=12, pady=6, font=("Microsoft YaHei UI", 9))
+        self.anomaly_text.pack(fill="both", expand=True, padx=8, pady=(0, 10))
 
     def _build_health_tab(self) -> None:
+        card = tk.Frame(self.health_tab, bg="#FFFFFF", highlightbackground="#E4EBF1", highlightthickness=1)
+        card.pack(fill="both", expand=True)
+        tk.Label(card, text="最近一次数据源运行", bg="#FFFFFF", fg="#132238", font=("Microsoft YaHei UI", 12, "bold")).pack(anchor="w", padx=16, pady=(14, 8))
         columns = ("source", "status", "count", "message", "finished")
-        self.health_tree = ttk.Treeview(self.health_tab, columns=columns, show="headings")
+        self.health_tree = ttk.Treeview(card, columns=columns, show="headings")
         for column, title, width in (
             ("source", "来源", 240), ("status", "状态", 80), ("count", "数量", 80),
             ("message", "信息", 420), ("finished", "完成时间", 180),
         ):
             self.health_tree.heading(column, text=title)
             self.health_tree.column(column, width=width, anchor="w")
-        self.health_tree.pack(fill="both", expand=True)
+        self.health_tree.tag_configure("success", foreground="#118562")
+        self.health_tree.tag_configure("failed", foreground="#C43D3D")
+        self.health_tree.pack(fill="both", expand=True, padx=12, pady=(0, 12))
 
     def _build_report_tab(self) -> None:
-        bar = ttk.Frame(self.report_tab)
-        bar.pack(fill="x", pady=(0, 8))
-        ttk.Button(bar, text="打开日报目录", command=self.open_report_dir).pack(side="left")
-        ttk.Label(bar, text="给 OpenClaw 或人工查看的精简内容", style="Muted.TLabel").pack(
-            side="left", padx=10
-        )
-        self.report_text = tk.Text(self.report_tab, wrap="word", state="disabled")
-        self.report_text.pack(fill="both", expand=True)
+        card = tk.Frame(self.report_tab, bg="#FFFFFF", highlightbackground="#E4EBF1", highlightthickness=1)
+        card.pack(fill="both", expand=True)
+        bar = tk.Frame(card, bg="#FFFFFF")
+        bar.pack(fill="x", padx=14, pady=12)
+        ttk.Button(bar, text="打开日报目录", command=self.open_report_dir, style="Secondary.TButton").pack(side="left")
+        tk.Label(bar, text="OpenClaw 默认读取的精简内容", bg="#FFFFFF", fg="#718096", font=("Microsoft YaHei UI", 9)).pack(side="left", padx=10)
+        self.report_text = tk.Text(card, wrap="word", state="disabled", bg="#FFFFFF", fg="#263445", relief="flat", padx=16, pady=10, font=("Microsoft YaHei UI", 10))
+        self.report_text.pack(fill="both", expand=True, padx=8, pady=(0, 12))
 
     def _build_settings_tab(self) -> None:
-        ttk.Label(
-            self.settings_tab,
-            text="选择品种后可改模式或合约；保存设置会自动应用当前编辑，下一次采集生效。",
-        ).pack(anchor="w", pady=(0, 10))
-        body = ttk.Frame(self.settings_tab)
+        intro = tk.Frame(self.settings_tab, bg="#E6F3F0", highlightbackground="#C9E3DD", highlightthickness=1)
+        intro.pack(fill="x", pady=(0, 12))
+        tk.Label(
+            intro,
+            text="选择品种后修改模式或合约。保存设置会自动应用当前编辑，下一次采集生效。",
+            bg="#E6F3F0",
+            fg="#0A5A4E",
+            font=("Microsoft YaHei UI", 9),
+        ).pack(anchor="w", padx=14, pady=11)
+
+        body = tk.Frame(self.settings_tab, bg="#F4F7FB")
         body.pack(fill="both", expand=True)
-        left = ttk.Frame(body)
+        left = tk.Frame(body, bg="#FFFFFF", highlightbackground="#E4EBF1", highlightthickness=1)
         left.pack(side="left", fill="both", expand=True)
-        self.settings_tree = ttk.Treeview(
-            left,
-            columns=("code", "name", "exchange", "mode", "contract"),
-            show="headings",
-        )
+        tk.Label(left, text="品种列表", bg="#FFFFFF", fg="#132238", font=("Microsoft YaHei UI", 12, "bold")).pack(anchor="w", padx=14, pady=(12, 7))
+        self.settings_tree = ttk.Treeview(left, columns=("code", "name", "exchange", "mode", "contract"), show="headings")
         for column, title, width in (
             ("code", "代码", 70), ("name", "品种", 90), ("exchange", "交易所", 80),
             ("mode", "模式", 80), ("contract", "指定合约", 110),
         ):
             self.settings_tree.heading(column, text=title)
             self.settings_tree.column(column, width=width, anchor="center")
-        self.settings_tree.pack(fill="both", expand=True)
+        self.settings_tree.pack(fill="both", expand=True, padx=10, pady=(0, 10))
         self.settings_tree.bind("<<TreeviewSelect>>", self._select_product)
 
-        form = ttk.LabelFrame(body, text="品种设置", padding=12)
+        form = ttk.LabelFrame(body, text="品种设置", padding=14)
         form.pack(side="left", fill="y", padx=(14, 0))
         self.code_var = tk.StringVar()
         self.name_var = tk.StringVar()
@@ -172,31 +341,18 @@ class FuturesDesktopApp:
             ("代码", self.code_var), ("名称", self.name_var), ("交易所", self.exchange_var)
         )):
             ttk.Label(form, text=label).grid(row=row, column=0, sticky="w", pady=5)
-            ttk.Entry(form, textvariable=variable, width=22).grid(
-                row=row, column=1, sticky="ew", pady=5
-            )
+            ttk.Entry(form, textvariable=variable, width=22).grid(row=row, column=1, sticky="ew", pady=5)
         ttk.Label(form, text="模式").grid(row=3, column=0, sticky="w", pady=5)
-        mode = ttk.Combobox(
-            form, textvariable=self.mode_var, values=("自动主力", "固定合约"),
-            state="readonly", width=19,
-        )
+        mode = ttk.Combobox(form, textvariable=self.mode_var, values=("自动主力", "固定合约"), state="readonly", width=19)
         mode.grid(row=3, column=1, sticky="ew", pady=5)
         mode.bind("<<ComboboxSelected>>", self._toggle_contract_state)
         ttk.Label(form, text="指定合约").grid(row=4, column=0, sticky="w", pady=5)
         self.contract_entry = ttk.Entry(form, textvariable=self.contract_var, width=22)
         self.contract_entry.grid(row=4, column=1, sticky="ew", pady=5)
-        ttk.Button(form, text="添加/更新", command=self._update_product).grid(
-            row=5, column=0, columnspan=2, sticky="ew", pady=(12, 4)
-        )
-        ttk.Button(form, text="删除选中", command=self._delete_product).grid(
-            row=6, column=0, columnspan=2, sticky="ew", pady=4
-        )
-        ttk.Button(form, text="保存设置（含当前编辑）", command=self._save_settings).grid(
-            row=7, column=0, columnspan=2, sticky="ew", pady=(16, 4)
-        )
-        ttk.Label(form, text="合约格式示例：SH2701", style="Muted.TLabel").grid(
-            row=8, column=0, columnspan=2, sticky="w", pady=(8, 0)
-        )
+        ttk.Button(form, text="添加/更新", command=self._update_product, style="Secondary.TButton").grid(row=5, column=0, columnspan=2, sticky="ew", pady=(12, 4))
+        ttk.Button(form, text="删除选中", command=self._delete_product, style="Secondary.TButton").grid(row=6, column=0, columnspan=2, sticky="ew", pady=4)
+        ttk.Button(form, text="保存设置（含当前编辑）", command=self._save_settings, style="Accent.TButton").grid(row=7, column=0, columnspan=2, sticky="ew", pady=(16, 4))
+        tk.Label(form, text="合约格式示例：SH2701", bg="#FFFFFF", fg="#8A9AAB", font=("Microsoft YaHei UI", 8)).grid(row=8, column=0, columnspan=2, sticky="w", pady=(8, 0))
         self._toggle_contract_state()
 
     def _toggle_contract_state(self, _event: Any = None) -> None:
@@ -349,21 +505,33 @@ class FuturesDesktopApp:
             messagebox.showerror("刷新失败", str(exc))
             return
 
+        products = self.context.get("products", [])
+        anomalies = self.context.get("anomalies", [])
+        missing_count = sum(1 for item in products if item.get("missing"))
+        self.metric_vars["date"].set(trading_date)
+        self.metric_vars["status"].set(str(self.context.get("status", "-")).upper())
+        self.metric_vars["products"].set(f"{len(products) - missing_count}/{len(products)}")
+        self.metric_vars["anomalies"].set(str(len(anomalies)))
+
         mode_by_code = {
             product["code"]: "固定" if product.get("contract_override") else "自动"
             for product in self.config["products"]
         }
         for row_id in self.market_tree.get_children():
             self.market_tree.delete(row_id)
-        for item in self.context.get("products", []):
+        for item in products:
             if item.get("missing"):
                 self.market_tree.insert(
-                    "", "end", values=(item["code"], item["name"], mode_by_code.get(item["code"], ""), "数据暂缺")
+                    "",
+                    "end",
+                    values=(item["code"], item["name"], mode_by_code.get(item["code"], ""), "数据暂缺"),
+                    tags=("down",),
                 )
                 continue
             bar = item["bar"]
             close = bar.get("close")
             change = item.get("change_pct")
+            tag = "up" if change is not None and float(change) > 0 else "down" if change is not None and float(change) < 0 else ""
             self.market_tree.insert(
                 "",
                 "end",
@@ -378,9 +546,8 @@ class FuturesDesktopApp:
                     f"{float(bar.get('open_interest') or 0):,.0f}",
                     bar.get("trading_date", ""),
                 ),
+                tags=(tag,) if tag else (),
             )
-
-        anomalies = self.context.get("anomalies", [])
         anomaly_text = "\n".join(
             f"[{item['severity']}] {item['message']}" for item in anomalies
         ) or "未发现异常。"
@@ -396,6 +563,8 @@ class FuturesDesktopApp:
         for row_id in self.health_tree.get_children():
             self.health_tree.delete(row_id)
         for row in health:
+            status = str(row["status"])
+            tags = ("success",) if status == "success" else ("failed",) if status in {"failed", "partial"} else ()
             self.health_tree.insert(
                 "",
                 "end",
@@ -403,6 +572,7 @@ class FuturesDesktopApp:
                     row["source"], row["status"], row["item_count"],
                     row["message"], row["finished_at"] or "",
                 ),
+                tags=tags,
             )
 
         report_dir = Path(self.config["reports_dir"]) / trading_date

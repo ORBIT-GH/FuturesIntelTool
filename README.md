@@ -136,6 +136,29 @@ powershell -ExecutionPolicy Bypass -File scripts\build_desktop.ps1
 
 这是单文件 Windows 程序，可以直接发送给别人。对方首次运行时会在自己的用户目录创建数据文件，不需要安装 Python、浏览器或 OpenClaw。
 
+## GitHub 发布
+
+项目包含两个 GitHub Actions 工作流：
+
+- `.github/workflows/ci.yml`：推送和 PR 时运行测试。
+- `.github/workflows/release.yml`：推送 `v*` 标签时构建 Windows EXE，打包 ZIP，并创建 GitHub Release。
+
+发布新版本的步骤：
+
+```powershell
+git add .
+git commit -m "release: v0.2.0"
+git tag v0.2.0
+git push origin master
+git push origin v0.2.0
+```
+
+如果默认分支是 `main`，把 `master` 改成 `main`。首次发布前需要设置远程仓库：
+
+```powershell
+git remote add origin https://github.com/<你的用户名>/<仓库名>.git
+```
+
 ## 测试
 
 ```powershell
