@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "futures-intel"
-version = "0.2.0"
+version = "0.2.1"
 description = "Local futures market data collector, report generator, and OpenClaw file/CLI interface."
 requires-python = ">=3.11"
-dependencies = []
+dependencies = ["tzdata>=2025.2"]
 
 [project.gui-scripts]
 futures-intel-desktop = "futures_intel.desktop:main"

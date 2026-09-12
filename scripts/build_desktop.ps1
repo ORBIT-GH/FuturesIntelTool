@@ -11,7 +11,7 @@ $Entry = Join-Path $Root "desktop_app.py"
 $Resources = Join-Path $Src "futures_intel\resources"
 
 if ($InstallBuildDeps) {
-    & $Python -m pip install --upgrade pyinstaller
+    & $Python -m pip install --upgrade pyinstaller -e $Root
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 
