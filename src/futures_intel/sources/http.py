@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import ssl
+import time
 from typing import Mapping
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 
@@ -15,13 +18,36 @@ def fetch_bytes(
     *,
     headers: Mapping[str, str] | None = None,
     timeout: float = 20.0,
+    retries: int = 3,
+    backoff: float = 1.0,
 ) -> bytes:
+    if retries < 1:
+        raise ValueError("retries must be at least 1")
+
     request_headers = {"User-Agent": USER_AGENT, "Accept": "*/*"}
     if headers:
         request_headers.update(headers)
     request = Request(url, headers=request_headers)
-    with urlopen(request, timeout=timeout) as response:
-        return response.read()
+    last_error: Exception | None = None
+
+    for attempt in range(retries):
+        try:
+            with urlopen(request, timeout=timeout) as response:
+                return response.read()
+        except HTTPError as exc:
+            last_error = exc
+            if exc.code < 500 or attempt >= retries - 1:
+                raise
+        except (URLError, TimeoutError, ssl.SSLError, ConnectionError) as exc:
+            last_error = exc
+            if attempt >= retries - 1:
+                raise
+        if backoff > 0:
+            time.sleep(backoff * (2**attempt))
+
+    if last_error is not None:
+        raise last_error
+    raise RuntimeError(f"request failed without an exception: {url}")
 
 
 def fetch_text(
@@ -30,7 +56,13 @@ def fetch_text(
     encoding: str = "utf-8",
     headers: Mapping[str, str] | None = None,
     timeout: float = 20.0,
+    retries: int = 3,
+    backoff: float = 1.0,
 ) -> str:
-    return fetch_bytes(url, headers=headers, timeout=timeout).decode(
-        encoding, errors="replace"
-    )
+    return fetch_bytes(
+        url,
+        headers=headers,
+        timeout=timeout,
+        retries=retries,
+        backoff=backoff,
+    ).decode(encoding, errors="replace")
